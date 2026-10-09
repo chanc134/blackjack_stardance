@@ -1,4 +1,6 @@
 import random
+import arcade
+
 #variables
 run = 0
 card = 0
@@ -9,20 +11,26 @@ overallresult = 0
 nextcard = 0
 cardshand = []
 cardsnum = []
-
-def createdeck():
-    global deck, cardslist,suits
+dealerhand = []
+dealersum = 0
+dealernum = []
+handsum = 0
+screen_width = 800
+screen_height = 600
+screen_title = "- Blackjack! -"
+def createdeck()
+    global deck
     ranks = ["Ace","2","3","4","5","6","7","8","9","10","Jack","Queen","King"]
     suits = ["Clubs", "Spades", "Hearts", "Diamonds"]
     deck = [f"{rank} of {suit}" for suit in suits for rank in ranks]
     deck.append("⭐ Star Card⭐")
     deck.append("⭐ Star Card⭐")
     random.shuffle(deck)
-def getcardvalue(cardsum,card):
+def getcardvalue(handsum,card):
     if "Jack" in card or "Queen" in card or "King" in card:
         return 10
     elif "Ace" in card:
-        if cardsum + 11 >21:
+        if handsum + 11 >21 :
             return 1 
         return 11
     elif card =="⭐ Star Card⭐":
@@ -31,14 +39,22 @@ def getcardvalue(cardsum,card):
         ranknumber = card.split()[0]
         return int(ranknumber)
 def getcard():
-    global cardsum, cardshand, cardsnum, nextcard, card
+    global cardsum, cardshand, cardsnum, nextcard, card, handsum
     nextcard = 0
     card = deck.pop()
     cardshand.append(card) 
-    cardsnum.append(getcardvalue(cardsum, card))
-    print(f"Your cards are {', '.join(cardshand)}")
+    handsum = cardsum
+    cardsnum.append(getcardvalue(handsum, card))
     cardsum = sum(cardsnum)
+def getdealercard():
+    global card, dealerhand, dealernum, dealersum, handsum
+    card = deck.pop()
+    dealerhand.append(card) 
+    handsum = dealersum
+    dealernum.append(getcardvalue(handsum, card))
+    dealersum = sum(dealernum)
 
+#start menu
 print("         ♠️ ♥️  -Welcome to Blackjack!-♦️ ♣️ ")
 startmenu = input("What do you want to do?(P to play/H for help): ")
 if startmenu.lower() in ["h", "help"]:
@@ -67,38 +83,90 @@ In this version of blackjack, there is also a card called the \n
 star card. There are only 2 in the deck and if you get one you\n
 get to look at your next card!
 """)
-elif startmenu.lower() in ["p", "play"]:
+    startmenu = input("Type 'P' to play now: ")
+
+#play!!!
+if startmenu.lower() in ["p", "play"]:
     run = 1
     while run==1:
+    #gameloop
+        cardsum = 0
+        cardshand = []
+        cardsnum = []
+        dealerhand = []
+        dealersum = 0
+        dealernum = []
+        gameover = False
         createdeck()
+        getdealercard()
+        getdealercard()
+        print("\nThe dealers visible card is", card)
         for i in range(2):
             getcard()
+        print(f"Your cards are {', '.join(cardshand)}")
+        
+        #card checks
+        if "⭐ Star Card⭐" in cardshand:
+            nextcard = deck[-1]
+            print("You drew a Star Card! The next card in the deck is", nextcard)
+            
         if cardsum == 21:
-            print("🎉Blackjack! You win!🎉")
+            print("🎉 Blackjack! You win!🎉")
             wins += 1
-            run = 0
-            break
+            gameover = True
         elif cardsum > 21:
             print("💥Bust! Dealer wins!")
             losses += 1
-            run = 0
-            break
-        while True:
-            hitstand = input("Do you want to hit or stand?(H/S)").lower()
+            gameover = True
+
+        while not gameover:
+            hitstand = input("Do you want to hit or stand?(H/S): ").lower()
             if hitstand == "h" or hitstand == "hit":
                 getcard()
-            if card == "⭐ Star Card⭐":
-                nextcard = deck[-1]
-                print("You drew a Star Card! The next card in the deck is", nextcard)
-            if cardsum == 21:
-                    print("🎉Blackjack! You win!🎉")
-                    wins += 1
+                print(f"Your cards are {', '.join(cardshand)}")
+                if card == "⭐ Star Card⭐":
+                    nextcard = deck[-1]
+                    print("⭐ You drew a Star Card!⭐ The next card in the deck is", nextcard)
+                if cardsum > 21:
+                    print("💥 Bust! Dealer wins!")
+                    losses += 1
+                    gameover = True
                     break
-            elif cardsum > 21:
-                print("💥Bust! Dealer wins!")
-                losses += 1
-                break
-            if hitstand == "s" or hitstand =="stand":
+            elif hitstand == "s" or hitstand =="stand":
                 print("Your total score is", cardsum)
-                run = 0
+                gameover = True
                 break
+            else:
+                print("Invalid input. Please pick H or S.")
+
+        if cardsum <= 21 and cardsum != 21:
+            print(f"The dealer's cards are {', '.join(dealerhand)}")
+            while True:
+                if dealersum < 17:
+                    getdealercard()
+                    print("The dealer hits...")
+                    print(f"The dealer's cards are {', '.join(dealerhand)}")
+                    if dealersum > 21:
+                        print("💥 Bust! You win!")
+                        wins += 1
+                        break
+                elif dealersum >16:
+                    print("The dealer stands.")
+                    if cardsum > dealersum:
+                        print("🎉 You beat the dealer! You win!🎉")
+                        wins += 1
+                        break
+                    elif dealersum > cardsum:
+                        print("😭 Dealer wins. Better luck next time!😭")
+                        losses += 1
+                        break
+                    elif dealersum == cardsum:
+                        print("It's a tie!")
+                        break
+
+        overallresult = wins - losses
+        print(f"\nYour current stats-> Wins: {wins} | Losses: {losses} | Overall:{overallresult}")
+        play = input("Do you want to play again? (Y/N): ").lower()
+        if play not in ["y", "yes"]:
+            print("Thanks for playing!")
+            run = 0
